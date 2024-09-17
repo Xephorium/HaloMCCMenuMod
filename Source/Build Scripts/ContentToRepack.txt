@@ -1,0 +1,1 @@
+"E:\Game Dev\Mods\Halo MCC Menu Overhaul\3 - New MCC UE4 Project\Unreal Source\MCC\Saved\Cooked\WindowsNoEditor\MCC\*" "../../../MCC/"

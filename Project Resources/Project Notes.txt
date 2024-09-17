@@ -1,0 +1,121 @@
+
+////////////////////////
+/// MCC Menu Modding ///
+////////////////////////
+
+
+/*--- Tools ---*/
+
+UnrealPak
+  File: <Engine Version>\Engine\Binaries\Win64\UnrealPak.exe
+  Desc: A command line Unreal Engine tool that extracts assets from compiled .pak project files.
+
+
+/*--- Full Process ---*/
+
+1. Use UnrealPak to extract MCC-WindowsNoEditor.pak, a compressed package of all of MCC's unreal
+   engine files. This will produce an incomplete, but decompiled archive of the project's original
+   unreal engine assets.
+
+     Command Format
+
+       UnrealPak.exe <original_mcc_pak> -Extract <extract_directory>
+
+     Command Example
+
+       "E:\Game Dev\Unreal Engine\UE_4.21\Engine\Binaries\Win64\UnrealPak.exe" "D:\Games\Steam\steamapps\common\Halo The Master Chief Collection\MCC\Content\Paks\MCC-WindowsNoEditor.pak" -Extract "E:\Game Dev\Mods\Halo MCC Menu Overhaul\1 - Vanilla MCC Unpack"
+
+2. Use a new, blank Unreal Project to load and partially view the extracted MCC assets. The
+   extracted assets have incomplete metadata, are stripped of code (including Blueprints), and
+   often can't be fully opened in the editor. However, there's sometimes enough data in the Unreal
+   Editor's preview to infer missing details and rebuild the source.
+
+     Project Details
+       • Name:    VanillaMCC (Doesn't Matter)
+       • Version: 4.21
+       • Type:    Blueprint (Not C++)
+
+     Process
+       • Copy the desired assets from the unpacked 'MCC\Content\' directory into a corresponding
+         directory in 'VanillaMCC\Content\'.
+
+3. Use a *second* blank Unreal Project to build and store reconstructions of the original MCC
+   assets. In this repository, my project is stored at 'Source\Unreal Project\MCC'.
+
+     Project Details
+       • Name:    MCC (Needs to be "MCC" for cooked content path to match MCC source.)
+       • Version: 4.21
+       • Type:    Blueprint (C++)
+
+     Process
+       • This project holds only reconstructed UE4 assets, which are used to replace vanilla MCC
+         files.
+       • Each new asset must have the same name and exist in the same directory as the original
+         asset it replaces. For example, if a texture lives in (Vanilla)'MCC\Content\UI\x.uasset', the reconstructed asset must be located at (New)'MCC\Content\UI\x.uasset'.
+
+4. When ready to see changes in game, cook the (New) MCC project's content for Windows in the
+   Unreal Editor.
+
+     File > Cook Content for Windows. 
+
+5. From the cooked project output (MCC\Saved\Cooked\WindowsNoEditor\MCC\...), delete everything
+   but the content folder and the specific files within it that are meant to override Vanilla MCC
+   assets.
+
+6. Use UnrealPak to compress contents of cooked Content folder into new .pak file for MCC. Then
+   Add the suffix "_P" to the new pak file's name and move it to a '~mods' directory directly
+   beside the original MCC install's 'MCC-WindowsNoEditor.pak' file.
+
+     Command Format
+       
+       UnrealPak.exe <output_pak> -Create=<path_to_pak_config_file>
+
+     Command Example
+       
+       "E:\Game Dev\Unreal Engine\UE_4.21\Engine\Binaries\Win64\UnrealPak.exe" "D:\Games\Steam\steamapps\common\Halo The Master Chief Collection\MCC\Content\Paks\~mods\MCC-WindowsNoEditor_P.pak" -Create="E:\Game Dev\Mods\Halo MCC Menu Overhaul\3 - New MCC UE4 Project\Source\Build Scripts\ContentToRepack.txt"
+
+     Notes
+       • The '_P' suffix specifies that at runtime, unreal should treat this .pak file with
+         priority, replacing the duplicate contents of any other .pak file (including the original)
+         with these assets. This means we only need to build a new .pak file containing overrides,
+         rather than all 10 gigs of assets needed to run MCC's unreal engine wrapper.
+
+7. Boot MCC with Easy Anti-Cheat disabled & test changes.
+
+
+/*--- Optimized (Script Assisted) Process ---*/
+
+1. Reconstruct desired assets in correct (New) 'MCC\Content' directory.
+
+2. Run 'RebuildHaloMenuMod.bat' to cook project & generate .pak file.
+
+3. Boot MCC with Easy Anti-Cheat disabled & test changes.
+
+
+/*--- Resources & Credits ---*/
+
+Visuals
+  Difficulty Icons
+    Author: Dragon99099 (DeviantArt)
+    Link: https://www.deviantart.com/dragon99099/gallery/42899520/game-related
+
+
+/*--- Asset Info ---*/
+
+Weird Naming
+  • Options Panel Outline: Content\UI\Shared\Textures\Button\T_Cn_ButtonSecondary_Focus
+  • Options Panel Background: Content\UI\Shared\Textures\Button\T_Cn_Btn_BG (?? Can't tell if
+    actually showing changes in game.)
+
+Buttons
+  • Primary Disabled - T_Cn_BtnDisabled_Fill
+  • Primary Default  - T_Cn_BtnDefault_Fill (RGBA w/ Runtime Tint)
+  • Primary Hover    - T_Cn_BtnHover_Fill (Renders on TOP of Default, RGBA w/ Runtime Tint)
+  • Primary Click    - T_Cn_BtnActive_Fill (No Alpha, B/W Mask)
+  • ???              - T_Bn_BtnFocus_Fill (???)
+
+
+/*--- Issues ---*/
+
+Difficulty Icons Refuse to Replace
+  • Tried turning off "Never Stream", various formats including png, tga, dds (BC7), no dice.
