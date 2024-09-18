@@ -27,7 +27,7 @@ UnrealPak
 
 2. Use a new, blank Unreal Project to load and partially view the extracted MCC assets. The
    extracted assets have incomplete metadata, are stripped of code (including Blueprints), and
-   often can't be fully opened in the editor. However, there's sometimes enough data in the Unreal
+   can't be fully opened in the editor. However, there's sometimes enough data in the Unreal
    Editor's preview to infer missing details and rebuild the source.
 
      Project Details
@@ -119,3 +119,48 @@ Buttons
 
 Difficulty Icons Refuse to Replace
   • Tried turning off "Never Stream", various formats including png, tga, dds (BC7), no dice.
+
+
+/*--- Decooking Assets ---*/
+
+Overview
+  • Unreal has limited support for viewing cooked assets by default. However, by slightly modifying
+    the engine code, we can enable even more experimental cooked asset features. Doing so requires
+    downloading/building the engine from source and results in a more unstable editor. Opening some
+    cooked assets can cause bugs or crashes. But the entire process is outlined in detail below.
+  • Video Tutorial: https://youtu.be/6unVb5gNBtM?si=2gVgMhGXVrsKWwep
+
+Modifying Unreal Engine
+  • Download Engine Source
+    • Link: https://github.com/EpicGames/UnrealEngine/releases?page=4
+    • Version: 4.22+ Needed for Utility Widget Editor
+    • NOTE: Must download a *release* build's assets! I discovered the hard way (via 2 days of
+            unsuccessfully trying to build various versions of the engine) that cloning the source
+            of a particular branch from the repo page results in a download that's missing loads
+            of necessary dll's, resulting in dozens of incomprehensible build errors. 💀
+  • Setup Engine Project
+    • Replace 'Engine/Build/Commit.gitdeps.xml' with the corresponding file included as part of the
+      build's release assets to fix an issue with the 'Setup.bat' script.
+      • Link: https://github.com/EpicGames/UnrealEngine/blob/4.25/Engine/Build/Commit.gitdeps.xml
+    • Run 'Setup.bat'.
+    • Run 'GenerateProjectFiles.bat'
+      • Script may throw errors (like '.NETFramework version missing'). Follow the directions to
+        install whatever's needed to get the script to succeed.
+  • Open UE4.sln Solution in Visual Studio
+  • Edit Engine Source to Enable Experimental Cooked Content Support
+    • UE4.22 Code Edits
+      • AssetEditorManager.cpp: Comment out line 326
+          // return false;
+      • MaterialShared.cpp: Change boolean on line 1661 to true
+          bool bAssumeShaderMapIsComplete = true;
+      • UObjectGlobals.cpp: Change boolean on line 64 to true
+          bool GAllowUnversionedContentInEditor = true;
+      • LinkerLoad.cpp: Change integer on line 85 to 1
+          int32 GAllowCookedDataInEditorBuilds = 1;
+      • (Optional) WindowsPlatformCompilerSetup.h: Comment out annoying build message on lines 12-14
+          //#if defined(_MSC_VER) && _MSC_VER > 1929 
+          //    #pragma message("Detected compiler newer than Visual Studio 2019, please...")
+          //#endif
+  • Build Solution
+    • Set UE4 as Startup Project
+    • Build UE4
