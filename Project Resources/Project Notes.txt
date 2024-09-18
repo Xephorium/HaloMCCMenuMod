@@ -164,3 +164,14 @@ Modifying Unreal Engine
   • Build Solution
     • Set UE4 as Startup Project
     • Build UE4
+    • Fix Errors: The stock build produces a few errors, which I've resolved with these changes.
+      • Change the project's C++ compile version to 14 by changing line 1009-1012 of TargetRules.cs
+          [RequiresUniqueBuildEnvironment]
+          [CommandLine("-CppStd")]
+          [XmlConfigFile(Category = "BuildConfiguration")]
+          public CppStandardVersion CppStandard = CppStandardVersion.Cpp14;
+      • Remove references to 'std::uinary_function' by no longer extending it in two custom structs
+      • Remove references to 'std::binary_function' by no longer extending it in two custom structs
+
+Creating A Project in Modified Unreal Engine
+  • (Follow instructions in video.)
