@@ -175,3 +175,92 @@ Modifying Unreal Engine
 
 Creating A Project in Modified Unreal Engine
   • (Follow instructions in video.)
+
+
+/*--- Painful Lessons ---*/
+
+Building
+  • All instances of the editor MUST be closed to build the engine. Otherwise, it fails with
+    a cryptic error about not being able to replace a DLL file. Don't ask how many times I assumed
+    this meant the build state was corrupted and rebuilt the ENTIRE source (~3k modules) over the
+    course of an hour because of it. 💀
+
+
+/*--- Useful Code Snippets ---*/
+
+// Log Current Value of srcAsset->CompressionSettings UEnum
+const UEnum* TextureCompressionSettings 
+  = FindObject<UEnum>(ANY_PACKAGE, TEXT("TextureCompressionSettings"));
+UE_LOG(
+  LogTemp,
+  Warning,
+  TEXT("Current Enum: %s"),
+  *(TextureCompressionSettings ? 
+    TextureCompressionSettings->GetEnumName(srcAsset->CompressionSettings.GetValue()) : 
+    TEXT("<Invalid Enum>"))
+);
+
+-----
+
+// Log Current Value of srcAsset->MaterialType enum
+  UE_LOG(
+    LogTemp,
+    Warning,
+    TEXT("Material Enum: %d"),
+    srcAsset->GetMaterialType()
+  );
+
+-----
+
+// Printing a boolean
+UE_LOG(LogTemp, Warning, TEXT("Ready to Export: %s"), Texture->Source.IsValid() ? TEXT("True") : TEXT("False"));
+
+-----
+
+
+/*--- Investigating The Difficulty Icons ---*/
+
+Note: This was the point where I abandoned the project. For some reason I still can't discern,
+      the MCC's mission difficulty icons *refuse* to be replaced. I've followed the same process
+      as with every other image - uncook the original asset, use the metadata to reconstruct its
+      unreal source, cook the new asset, and build it into the replacement pak file. I've also
+      spent days tweaking every possible setting in the reconstructed texture: compression format,
+      mip data, texture streaming, LOD bias, texture group etc. I even began modifying the engine
+      export code to read info directly from the decooked Texture2D asset that might not be
+      visible in-editor. NOTHING works. I've included the relevant code and my notes below.
+
+      This might be the end of the line for now. 
+
+Programmatically Parsing Uncooked Texture2D Data
+
+  // Calls & Their Return Values
+  Texture->Source.GetFormat() -> TSF_Invalid/0
+  Texture->Source.IsValid()   -> False
+  Texture->Source.GetSizeX()  -> 0
+  Texture->GetSizeX()         -> 128
+  Texture->GetNumMips()       -> 1
+  Texture->GetPixelFormat()   -> PF_BC7/56
+
+Reading pixel data from first (only) mip
+
+  const FColor* FormatedImageData = static_cast<const FColor*>(Texture->PlatformData->Mips[0].BulkData.LockReadOnly());
+
+  UE_LOG(LogTemp, Warning, TEXT("Pixel 1 Color: %d, %d, %d, %d"), FormatedImageData[25 * 128 + 63].R, FormatedImageData[0].G, FormatedImageData[0].B, FormatedImageData[0].A);
+
+  //for (int32 X = 0; X < MyTexture2D->SizeX; X++)
+  //{
+  //  for (int32 Y = 0; Y < MyTexture2D->SizeY; Y++)
+  //  {
+  //    FColor PixelColor = FormatedImageData[Y * MyTexture2D->SizeX + X];
+  //    // Do the job with the pixel
+  //  }
+  //}
+
+  Texture->PlatformData->Mips[0].BulkData.Unlock();
+
+BC7 Texture Format Findings
+  • Unreal doesn't support importing BC7 images unless cubemap (or 2D?). However, it's supported
+    as a post-import compression setting.
+    • All of MCC's textures are compressed during the cook process in BC7 format, so I don't think
+      this is the isssue with the difficulty icons. Other reconstructed assets are replacing fine
+      in-game despite their reconstructed Unreal assets being in B8G8R8A8 format.
